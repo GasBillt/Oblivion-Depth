@@ -643,24 +643,22 @@ MonoBehaviour:
   walkSpeed: 5
   runSpeed: 12
   climbSpeed: 3
-  mouseSensitivity: 275
+  mouseSensitivity: 270
   groundCheckRadius: 0.2
   wallCheckDistance: 0.5
-  baseJumpHeight: 2
-  maxJumpHeight: 2.5
+  baseJumpHeight: 1.25
+  maxJumpHeight: 1.75
   jumpForwardForce: 3
-  fallMultiplier: 4
+  fallMultiplier: 1
   lowJumpMultiplier: 3
   maxJumps: 1
   coyoteTime: 0.15
-  jumpBufferTime: 0.1
-  ladderSnapDistance: 1
-  ladderSnapRotationSpeed: 5
+  jumpBufferTime: 0.3
+  ladderSnapDistance: -1
   ladderEnterDuration: 0.5
   ladderExitDuration: 0.5
-  ladderForwardOffset: 0.5
-  ladderExitForwardDistance: 1
-  ladderExitUpDistance: 0.5
+  ladderExitForwardDistance: 2.5
+  ladderExitUpDistance: 1
   ladderPrompt: {fileID: 0}
   groundCheck: {fileID: 736550442}
   takeCheck: {fileID: 1865341697}
@@ -1170,8 +1168,8 @@ Transform:
   m_GameObject: {fileID: 1471563613}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.053, z: 0.3574}
-  m_LocalScale: {x: 1, y: 0.9378867, z: 0.5716322}
+  m_LocalPosition: {x: -0, y: 0.0855, z: 1.2704}
+  m_LocalScale: {x: 1, y: 1.4421059, z: 2.3909073}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 330585546}
@@ -1278,8 +1276,8 @@ Transform:
   m_GameObject: {fileID: 1865341696}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0.0566, z: 1.4129}
-  m_LocalScale: {x: 1, y: 0.7186217, z: 2.6827068}
+  m_LocalPosition: {x: 0, y: 0.0481, z: 1.2378}
+  m_LocalScale: {x: 1, y: 0.735653, z: 2.3323455}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 330585546}

@@ -23,11 +23,9 @@ public class PlayerController : MonoBehaviour
     public float jumpBufferTime = 0.15f;
 
     [Header("Ladder Settings")]
-    public float ladderSnapDistance = 1f;
-    public float ladderSnapRotationSpeed = 5f;
+    public float ladderSnapDistance = 1f; // Расстояние от передней грани лестницы
     public float ladderEnterDuration = 0.5f;
     public float ladderExitDuration = 0.5f;
-    public float ladderForwardOffset = 0.5f;
     public float ladderExitForwardDistance = 1f;
     public float ladderExitUpDistance = 0.5f;
     public Image ladderPrompt;
@@ -41,7 +39,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundLayer;
     public LayerMask ladderLayer;
     public LayerMask wallLayer;
-    public Animator climbAnimator; // Аниматор для анимаций лестницы
+    public Animator climbAnimator;
 
     private Rigidbody rb;
     private bool isGrounded;
@@ -64,6 +62,7 @@ public class PlayerController : MonoBehaviour
     private Quaternion ladderStartRotation;
     private Quaternion ladderTargetRotation;
     private Vector3 ladderTargetPosition;
+    private Vector3 ladderCenter; // Центр лестницы для ориентации камеры
 
     void Start()
     {
@@ -148,7 +147,6 @@ public class PlayerController : MonoBehaviour
             }
             else if (ladderState == LadderState.OnLadder)
             {
-                // Выход по нажатию E
                 ExitLadderManual();
             }
         }
@@ -165,18 +163,23 @@ public class PlayerController : MonoBehaviour
         ladderStartPosition = transform.position;
         ladderStartRotation = transform.rotation;
         
-        // Рассчитываем целевую позицию (передняя грань лестницы)
-        Vector3 ladderForward = currentLadder.transform.forward;
-        Vector3 ladderPosition = currentLadder.transform.position;
-        Vector3 ladderSize = currentLadder.bounds.size;
-        
-        ladderTargetPosition = ladderPosition + ladderForward * (ladderSize.z / 2 + ladderForwardOffset);
-        ladderTargetPosition.y = transform.position.y; // Сохраняем текущую высоту
-        
         // Рассчитываем целевой поворот (лицом к лестнице)
         Vector3 directionToLadder = currentLadder.transform.position - transform.position;
         directionToLadder.y = 0;
         ladderTargetRotation = Quaternion.LookRotation(directionToLadder.normalized);
+        
+        // Рассчитываем центр лестницы для ориентации камеры
+        ladderCenter = currentLadder.bounds.center;
+        ladderCenter.y = transform.position.y; // Сохраняем текущую высоту игрока
+        
+        // Рассчитываем позицию передней грани лестницы с учетом snap distance
+        Vector3 ladderForward = currentLadder.transform.forward;
+        Vector3 ladderFrontPosition = currentLadder.bounds.center + 
+                                    ladderForward * (currentLadder.bounds.size.z / 2);
+        
+        // Целевая позиция: передняя грань + отступ (назад от лестницы)
+        ladderTargetPosition = ladderFrontPosition - ladderForward * ladderSnapDistance;
+        ladderTargetPosition.y = transform.position.y;
         
         // Запускаем анимацию входа
         if (climbAnimator != null)
@@ -198,10 +201,15 @@ public class PlayerController : MonoBehaviour
         transform.position = Vector3.Lerp(ladderStartPosition, ladderTargetPosition, progress);
         transform.rotation = Quaternion.Slerp(ladderStartRotation, ladderTargetRotation, progress);
         
-        // Фиксируем камеру
-        playerCamera.transform.localRotation = Quaternion.Slerp(
-            playerCamera.transform.localRotation, 
-            Quaternion.identity, 
+        // Ориентация камеры к центру лестницы
+        Vector3 lookDirection = ladderCenter - playerCamera.transform.position;
+        lookDirection.y = 0; // Только горизонтальное направление
+        Quaternion targetCameraRotation = Quaternion.LookRotation(lookDirection);
+        
+        // Применяем поворот камеры
+        playerCamera.transform.rotation = Quaternion.Slerp(
+            playerCamera.transform.rotation, 
+            targetCameraRotation, 
             progress
         );
         
@@ -213,7 +221,7 @@ public class PlayerController : MonoBehaviour
             // Фиксируем окончательную позицию и поворот
             transform.position = ladderTargetPosition;
             transform.rotation = ladderTargetRotation;
-            playerCamera.transform.localRotation = Quaternion.identity;
+            playerCamera.transform.rotation = targetCameraRotation;
         }
     }
 
@@ -226,6 +234,15 @@ public class PlayerController : MonoBehaviour
         if (Mathf.Abs(verticalInput) > 0.1f)
         {
             Vector3 newPosition = transform.position + climbDirection * climbSpeed * Time.fixedDeltaTime;
+            
+            // Обновляем позицию относительно лестницы
+            Vector3 ladderForward = currentLadder.transform.forward;
+            Vector3 ladderFrontPosition = currentLadder.bounds.center + 
+                                        ladderForward * (currentLadder.bounds.size.z / 2);
+            ladderTargetPosition = ladderFrontPosition - ladderForward * ladderSnapDistance;
+            ladderTargetPosition.y = newPosition.y;
+            
+            transform.position = ladderTargetPosition;
             
             // Проверка достижения верха
             if (verticalInput > 0 && CheckTopReached())
@@ -240,9 +257,12 @@ public class PlayerController : MonoBehaviour
                 StartLadderExit(false);
                 return;
             }
-            
-            transform.position = newPosition;
         }
+        
+        // Обновление ориентации камеры к центру лестницы
+        Vector3 lookDirection = ladderCenter - playerCamera.transform.position;
+        lookDirection.y = 0;
+        playerCamera.transform.rotation = Quaternion.LookRotation(lookDirection);
     }
 
     bool CheckTopReached()
@@ -283,7 +303,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            ladderTargetPosition = transform.position + 
+            ladderTargetPosition = transform.position - 
                 exitDirection * ladderExitForwardDistance;
             
             // Запускаем анимацию выхода снизу
@@ -302,12 +322,10 @@ public class PlayerController : MonoBehaviour
         // Плавное перемещение
         transform.position = Vector3.Lerp(ladderStartPosition, ladderTargetPosition, progress);
         
-        // Фиксируем камеру
-        playerCamera.transform.localRotation = Quaternion.Slerp(
-            playerCamera.transform.localRotation, 
-            Quaternion.identity, 
-            progress
-        );
+        // Фиксация камеры на лестнице при выходе
+        Vector3 lookDirection = ladderCenter - playerCamera.transform.position;
+        lookDirection.y = 0;
+        playerCamera.transform.rotation = Quaternion.LookRotation(lookDirection);
         
         // Завершение выхода
         if (progress >= 1f)
@@ -332,14 +350,15 @@ public class PlayerController : MonoBehaviour
 
     void HandleCameraRotation()
     {
-        if (isAgainstWall || ladderState != LadderState.None) return;
-
+        // Убрать проверку isAgainstWall из условия
+        if (ladderState != LadderState.None) return;
+    
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
+    
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
-
+    
         playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
     }
@@ -432,7 +451,8 @@ public class PlayerController : MonoBehaviour
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
-        if ((moveHorizontal != 0 || moveVertical != 0) && !isAgainstWall)
+        // Всегда разрешать движение, даже при столкновении со стеной
+        if (moveHorizontal != 0 || moveVertical != 0)
         {
             Vector3 moveDirection = (transform.right * moveHorizontal + transform.forward * moveVertical).normalized;
             rb.linearVelocity = new Vector3(
@@ -441,8 +461,9 @@ public class PlayerController : MonoBehaviour
                 moveDirection.z * currentSpeed
             );
         }
-        else if (!isAgainstWall)
+        else
         {
+            // Останавливать только горизонтальное движение
             rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
         }
     }
