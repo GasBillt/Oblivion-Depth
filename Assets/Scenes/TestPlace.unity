@@ -502,9 +502,9 @@ GameObject:
   - component: {fileID: 584011606}
   - component: {fileID: 584011611}
   m_Layer: 0
-  m_Name: Capsule
+  m_Name: MainPlayer
   m_TagString: Untagged
-  m_Icon: {fileID: 6519382022992737161, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -619,14 +619,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 584011605}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.644, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.84000015, z: -0.025000095}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 330585546}
   - {fileID: 736550442}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1151190003}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &584011611
 MonoBehaviour:
@@ -647,21 +647,25 @@ MonoBehaviour:
   groundCheckRadius: 0.2
   wallCheckDistance: 0.5
   baseJumpHeight: 2
-  maxJumpHeight: 4
-  jumpForwardForce: 5
-  fallMultiplier: 2.5
-  lowJumpMultiplier: 2
-  maxJumps: 2
+  maxJumpHeight: 2.5
+  jumpForwardForce: 3
+  fallMultiplier: 4
+  lowJumpMultiplier: 3
+  maxJumps: 1
   coyoteTime: 0.15
-  jumpBufferTime: 0.15
+  jumpBufferTime: 0.1
   ladderSnapDistance: 1
+  ladderSnapRotationSpeed: 5
+  ladderEnterDuration: 0.5
+  ladderExitDuration: 0.5
   ladderForwardOffset: 0.5
-  ladderExitForwardForce: 2
-  ladderExitUpForce: 1
+  ladderExitForwardDistance: 1
+  ladderExitUpDistance: 0.5
   ladderPrompt: {fileID: 0}
   groundCheck: {fileID: 736550442}
   takeCheck: {fileID: 1865341697}
   ladderCheck: {fileID: 1471563614}
+  ladderTopCheck: {fileID: 1471563614}
   playerCamera: {fileID: 330585545}
   groundLayer:
     serializedVersion: 2
@@ -672,6 +676,7 @@ MonoBehaviour:
   wallLayer:
     serializedVersion: 2
     m_Bits: 128
+  climbAnimator: {fileID: 0}
 --- !u!1 &653830232
 GameObject:
   m_ObjectHideFlags: 0
@@ -795,7 +800,7 @@ GameObject:
   m_Layer: 0
   m_Name: CheckSphere
   m_TagString: Untagged
-  m_Icon: {fileID: -5938655980376293919, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -994,6 +999,39 @@ Transform:
   m_LocalScale: {x: 4.9907, y: 14.181, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1151190002
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1151190003}
+  m_Layer: 0
+  m_Name: Player
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1151190003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1151190002}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.4840002, z: 0.025000095}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 584011610}
+  - {fileID: 1938487489}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1220479333
@@ -1320,13 +1358,44 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1865341696}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1938487488
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1938487489}
+  m_Layer: 0
+  m_Name: PlayerVisual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1938487489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1938487488}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1151190003}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 410087041}
   - {fileID: 1220479337}
-  - {fileID: 584011610}
   - {fileID: 653830236}
   - {fileID: 850314316}
   - {fileID: 541965364}
+  - {fileID: 1151190003}
