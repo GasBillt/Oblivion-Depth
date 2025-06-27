@@ -4,87 +4,93 @@ using System.Collections;
 
 public class Teleport : MonoBehaviour
 {
-//    public GameObject Player;
-//    public Image flashbangImage;
+    public GameObject Player;
+    public LevelManager LevelManager;
+    public Image flashbangImage;
+    private Vector3 backupCoords; // РҐСЂР°РЅРёС‚ РїРµСЂРµРґР°РЅРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹ РґР»СЏ С‚РµР»РµРїРѕСЂС‚Р°С†РёРё
+    private static readonly Vector3 invalidCoords = new Vector3(-1000, -1000, -1000);
 
-//    public void tp(float delay, string loc)
-//    {
-//        StartCoroutine(TeleportWithEffects(delay, loc));
-//    }
+    public void tp(float delay, string loc, Vector3 coords)
+    {
+        Debug.Log("1");
+        backupCoords = coords;
+        StartCoroutine(DelayedFlash(delay, loc));
+    }
 
-//    private IEnumerator TeleportWithEffects(float delay, string loc)
-//    {
-//        yield return new WaitForSeconds(delay);
-//        yield return StartCoroutine(FlashbangEffect());
 
-//        if (!string.IsNullOrEmpty(loc) && loc != "-")
-//        //{
-//            // Проверяем существование LevelManager
-//            //if (LevelManager.Instance != null)
-//            //{
-//            //    // Парсим координаты из строки формата "i,j"
-//            //    string[] indices = loc.Split(',');
-//            //    if (indices.Length != 2)
-//            //    {
-//            //        Debug.LogError("Invalid location format! Use 'i,j'");
-//            //        yield break;
-//            //    }
+    private IEnumerator DelayedFlash(float delay, string loc)
+    {
+        Debug.Log("2");
+        yield return new WaitForSeconds(delay);
+        FlashBang(loc);
+    }
 
-//            //    int i, j;
-//            //    if (!int.TryParse(indices[0], out i) || !int.TryParse(indices[1], out j))
-//            //    {
-//            //        Debug.LogError("Invalid indices! Must be integers.");
-//            //        yield break;
-//            //    }
+    private void FlashBang(string loc)
+    {
+        // Debug.Log("3");
+        // flashbangImage.gameObject.SetActive(true);
+        // flashbangImage.color = new Color(1f, 1f, 1f, 1f);
+        StartCoroutine(FlashAnimation(loc));
+    }
 
-//            //    // Получаем координаты из LevelManager
-//            //    Vector3 targetPosition = LevelManager.Instance.GetCoords(i, j);
+    private IEnumerator FlashAnimation(string loc)
+    {
+        Debug.Log("4");
+        // РњРіРЅРѕРІРµРЅРЅР°СЏ С‚РµР»РµРїРѕСЂС‚Р°С†РёСЏ РїСЂРё РїРѕР»РЅРѕР№ РЅРµРїСЂРѕР·СЂР°С‡РЅРѕСЃС‚Рё
+        Teleporting(loc);
 
-//            //    // Телепортируем игрока
-//            //    Player.transform.position = targetPosition;
-//            //}
-//           //else
-//           // {
-//           //     Debug.LogError("LevelManager instance not found!");
-//           // }
-//        }
-//    }
+        // РџР»Р°РІРЅРѕРµ РёСЃС‡РµР·РЅРѕРІРµРЅРёРµ
+        float duration = 0.5f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float alpha = Mathf.Lerp(1f, 0f, elapsed / duration);
+            flashbangImage.color = new Color(1f, 1f, 1f, alpha);
+            yield return null;
+        }
 
-//    //private IEnumerator FlashbangEffect()
-//    //{
-//    //    if (flashbangImage == null)
-//    //    {
-//    //        Debug.LogError("Flashbang Image reference is missing!");
-//    //        yield break;
-//    //    }
+        flashbangImage.gameObject.SetActive(false);
+    }
 
-//    //    flashbangImage.gameObject.SetActive(true);
-//    //    Color color = Color.white;
-//    //    color.a = 0f;
-//    //    flashbangImage.color = color;
+    private void Teleporting(string loc)
+    {
+        Debug.Log("5");
+        if (Player == null)
+        {
+            Debug.LogError("Player reference is missing!");
+            return;
+        }
 
-//    //    float duration = 0.1f;
-//    //    float elapsed = 0f;
-//    //    while (elapsed < duration)
-//    //    {
-//    //        elapsed += Time.deltaTime;
-//    //        color.a = Mathf.Lerp(0f, 1f, elapsed / duration);
-//    //        flashbangImage.color = color;
-//    //        yield return null;
-//    //    }
+        // РЎР»СѓС‡Р°Р№ СЃ РїСѓСЃС‚РѕР№ Р»РѕРєР°С†РёРµР№ РёР»Рё "-"
+        if (string.IsNullOrEmpty(loc) || loc == "-")
+        {
+            if (backupCoords == invalidCoords)
+            {
+                Debug.LogError("ErrorLog: Invalid backup coordinates");
+                return;
+            }
+            Player.transform.position = backupCoords;
+            return;
+        }
 
-//    //    yield return new WaitForSeconds(0.5f);
-
-//    //    elapsed = 0f;
-//    //    duration = 0.3f;
-//    //    while (elapsed < duration)
-//    //    {
-//    //        elapsed += Time.deltaTime;
-//    //        color.a = Mathf.Lerp(1f, 0f, elapsed / duration);
-//    //        flashbangImage.color = color;
-//    //        yield return null;
-//    //    }
-
-//    //    flashbangImage.gameObject.SetActive(false);
-//    //}
+        // РџРѕРёСЃРє РёРЅРґРµРєСЃР° Р»РѕРєР°С†РёРё
+        int index = System.Array.IndexOf(LevelManager.LocName, loc);
+        if (index >= 0 && index < LevelManager.levelPoints.Length)
+        {
+            Player.transform.position = LevelManager.levelPoints[index];
+        }
+        else
+        {
+            // Р РµР·РµСЂРІРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹ РїСЂРё РЅРµСѓРґР°С‡Рµ
+            if (backupCoords == invalidCoords)
+            {
+                Debug.LogError($"ErrorLog: Location '{loc}' not found and invalid backup coordinates");
+            }
+            else
+            {
+                Player.transform.position = backupCoords;
+            }
+        }
+    }
 }

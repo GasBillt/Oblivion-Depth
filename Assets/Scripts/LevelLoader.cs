@@ -3,12 +3,19 @@ using UnityEngine;
 public class LevelLoader : MonoBehaviour
 {
     public Teleport Teleport;
+    [Header("Loc Teleport Settings")]
+    public int delay;
+    public string loc;
 
-    public void OnCollisionEnter(Collision collision)
+    [Header("Teleport Settings")]
+    public Vector3 coords;
+
+    public void OnTriggerEnter(Collider collider)
     {
-        if (gameObject.tag == "MainPlayer")
+        if (collider.gameObject.tag == "MainPlayer")
         {
-            //Teleport.tp();
+            Debug.Log("0");
+            Teleport.tp(delay, loc, coords);
         }
     }
 }
