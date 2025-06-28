@@ -21,9 +21,23 @@ public class PlayerController : MonoBehaviour
     public int maxJumps = 2;
     public float coyoteTime = 0.15f;
     public float jumpBufferTime = 0.15f;
+    public float longFallMultiplier = 4f;
+    public float longFallThreshold = 1f;
+
+    [Header("Camera Effects")]
+public float maxFallShakeIntensity = 0.2f;
+public float fallShakeSpeed = 15f;
+public float fallShakeDelay = 0.5f; 
+public float landingDropAmount = 0.5f;
+public float landingDropDuration = 0.2f;
+public float landingReturnDuration = 0.5f;
+public float minLandingSpeed = 5f;
+private Vector3 landingDropOffset = Vector3.zero;
+private Vector3 cameraShakeOffset = Vector3.zero;
+private Vector3 cameraTargetPosition;
 
     [Header("Ladder Settings")]
-    public float ladderSnapDistance = 1f; // Расстояние от передней грани лестницы
+    public float ladderSnapDistance = 1f;
     public float ladderEnterDuration = 0.5f;
     public float ladderExitDuration = 0.5f;
     public float ladderExitForwardDistance = 1f;
@@ -43,6 +57,7 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;
     private bool isGrounded;
+    private bool wasGrounded;
     private bool isAgainstWall;
     private float currentSpeed;
     private float xRotation;
@@ -53,8 +68,14 @@ public class PlayerController : MonoBehaviour
     private float jumpStartTime;
     private Collider currentLadder;
     private bool isNearLadder;
+    private float fallTimeCounter;
+    private Vector3 originalCameraLocalPosition;
+    private float landingTimer;
+    private bool isLanding;
+    private float landingImpactSpeed;
+    private float fallShakeSeed;
+    private float fallShakeDelayTimer; // Таймер задержки тряски
 
-    // Состояния подъема по лестнице
     private enum LadderState { None, Entering, OnLadder, ExitingTop, ExitingBottom }
     private LadderState ladderState = LadderState.None;
     private float ladderTransitionTimer;
@@ -62,16 +83,30 @@ public class PlayerController : MonoBehaviour
     private Quaternion ladderStartRotation;
     private Quaternion ladderTargetRotation;
     private Vector3 ladderTargetPosition;
-    private Vector3 ladderCenter; // Центр лестницы для ориентации камеры
+    private Vector3 ladderCenter;
 
+    // ========== START FUNCTION (добавлена инициализация) ==========
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        fallShakeDelayTimer = 0f;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
         jumpsRemaining = maxJumps;
+        fallTimeCounter = 0f;
 
         if (playerCamera == null)
             playerCamera = GetComponentInChildren<Camera>();
+        
+        // Критически важная инициализация позиции камеры
+        originalCameraLocalPosition = playerCamera.transform.localPosition;
+        cameraTargetPosition = originalCameraLocalPosition;
+
+        // Гарантируем, что исходная позиция камеры не ниже минимальной
+        if (originalCameraLocalPosition.y < 0.15f)
+        {
+            originalCameraLocalPosition.y = 0.15f;
+            playerCamera.transform.localPosition = originalCameraLocalPosition;
+        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -84,7 +119,6 @@ public class PlayerController : MonoBehaviour
     {
         HandleInput();
         
-        // Обработка состояний лестницы
         switch (ladderState)
         {
             case LadderState.Entering:
@@ -102,10 +136,28 @@ public class PlayerController : MonoBehaviour
         }
 
         HandleJumpBuffer();
+        
+        HandleCameraEffects();
+        
+        // Плавное перемещение камеры к целевой позиции
+        playerCamera.transform.localPosition = Vector3.Lerp(
+            playerCamera.transform.localPosition,
+            cameraTargetPosition,
+            Time.deltaTime * 15f
+        );
+        
+        // Дополнительная проверка минимальной высоты камеры
+        if (playerCamera.transform.localPosition.y < 0.15f)
+        {
+            Vector3 clampedPosition = playerCamera.transform.localPosition;
+            clampedPosition.y = 0.15f;
+            playerCamera.transform.localPosition = clampedPosition;
+            cameraTargetPosition = clampedPosition;
+        }
     }
-
     void FixedUpdate()
     {
+        wasGrounded = isGrounded;
         CheckGround();
         CheckWalls();
         CheckLadder();
@@ -138,7 +190,6 @@ public class PlayerController : MonoBehaviour
             jumpBufferCounter -= Time.deltaTime;
         }
 
-        // Взаимодействие с лестницей
         if (Input.GetKeyDown(KeyCode.E))
         {
             if (isNearLadder && ladderState == LadderState.None)
@@ -152,42 +203,163 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // ================== FALL HANDLING ==================
+    void HandleFall()
+    {
+        if (rb.linearVelocity.y < 0 && ladderState == LadderState.None)
+        {
+            fallTimeCounter += Time.fixedDeltaTime;
+            float currentFallMultiplier = fallTimeCounter > longFallThreshold 
+                ? longFallMultiplier 
+                : fallMultiplier;
+            
+            rb.linearVelocity += Vector3.up * Physics.gravity.y * (currentFallMultiplier - 1) * Time.fixedDeltaTime;
+        }
+        else if (rb.linearVelocity.y > 0 && !Input.GetButton("Jump") && !isGrounded)
+        {
+            rb.linearVelocity += Vector3.up * Physics.gravity.y * (lowJumpMultiplier - 1) * Time.fixedDeltaTime;
+        }
+    }
+
+    // ========== HANDLE CAMERA EFFECTS FUNCTION ==========
+    void HandleCameraEffects()
+    {
+        // Сброс смещений
+        landingDropOffset = Vector3.zero;
+        cameraShakeOffset = Vector3.zero;
+
+        // Эффекты не применяются на лестнице
+        if (ladderState != LadderState.None)
+        {
+            cameraTargetPosition = originalCameraLocalPosition;
+            fallShakeDelayTimer = 0f;
+            return;
+        }
+
+        // Тряска камеры при падении (с задержкой)
+        if (!isGrounded && rb.linearVelocity.y < 0 && !isLanding)
+        {
+            fallShakeDelayTimer += Time.deltaTime;
+
+            if (fallShakeDelayTimer >= fallShakeDelay)
+            {
+                float fallSpeed = Mathf.Abs(rb.linearVelocity.y);
+                float shakeIntensity = Mathf.Clamp01(fallSpeed / 20f) * maxFallShakeIntensity;
+
+                float x = Mathf.PerlinNoise(fallShakeSeed, Time.time * fallShakeSpeed) * 2f - 1f;
+                float y = Mathf.PerlinNoise(fallShakeSeed + 10f, Time.time * fallShakeSpeed) * 2f - 1f;
+                float z = Mathf.PerlinNoise(fallShakeSeed + 20f, Time.time * fallShakeSpeed) * 2f - 1f;
+
+                cameraShakeOffset = new Vector3(x, y, z) * shakeIntensity;
+            }
+        }
+        else
+        {
+            fallShakeDelayTimer = 0f;
+        }
+
+        // Эффект приземления
+        if (isLanding)
+        {
+            landingTimer += Time.deltaTime;
+            float progress;
+
+            if (landingTimer <= landingDropDuration)
+            {
+                progress = landingTimer / landingDropDuration;
+                float dropAmount = landingDropAmount * (landingImpactSpeed / minLandingSpeed);
+                landingDropOffset = Vector3.down * dropAmount * progress;
+            }
+            else
+            {
+                progress = (landingTimer - landingDropDuration) / landingReturnDuration;
+                float dropAmount = landingDropAmount * (landingImpactSpeed / minLandingSpeed);
+                landingDropOffset = Vector3.down * dropAmount * (1f - progress);
+            }
+
+            if (landingTimer >= landingDropDuration + landingReturnDuration)
+            {
+                isLanding = false;
+                landingDropOffset = Vector3.zero;
+            }
+        }
+
+        // Обновление целевой позиции камеры
+        cameraTargetPosition = originalCameraLocalPosition + landingDropOffset + cameraShakeOffset;
+        
+        // Гарантируем, что камера не опускается ниже минимальной высоты
+        if (cameraTargetPosition.y < 0.15f)
+        {
+            cameraTargetPosition.y = 0.15f;
+        }
+    }
+
+    // ========== START LANDING EFFECT FUNCTION ==========
+    void StartLandingEffect(float impactSpeed)
+    {
+        isLanding = true;
+        landingTimer = 0f;
+        landingImpactSpeed = impactSpeed;
+    }
+
+// ========== CHECK GROUND FUNCTION (добавлен сброс позиции камеры) ==========
+    void CheckGround()
+    {
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
+
+        // Обнаружение приземления
+        if (!wasGrounded && isGrounded)
+        {
+            // Рассчитываем скорость падения
+            float fallSpeed = Mathf.Abs(rb.linearVelocity.y);
+
+            // Запускаем эффект приземления если скорость достаточно высокая
+            if (fallSpeed > minLandingSpeed)
+            {
+                StartLandingEffect(fallSpeed);
+            }
+
+            jumpsRemaining = maxJumps;
+            isJumping = false;
+            fallTimeCounter = 0f;
+            fallShakeDelayTimer = 0f; // Сброс таймера при приземлении
+
+            // Сброс позиции камеры при приземлении
+            cameraTargetPosition = originalCameraLocalPosition;
+            playerCamera.transform.localPosition = originalCameraLocalPosition;
+        }
+
+        if (isGrounded)
+            coyoteTimeCounter = coyoteTime;
+        else
+            coyoteTimeCounter -= Time.deltaTime;
+    }
+
     void StartLadderEnter()
     {
         if (currentLadder == null) return;
         
         ladderState = LadderState.Entering;
         ladderTransitionTimer = 0f;
-        
-        // Запоминаем начальные позиции
         ladderStartPosition = transform.position;
         ladderStartRotation = transform.rotation;
         
-        // Рассчитываем целевой поворот (лицом к лестнице)
         Vector3 directionToLadder = currentLadder.transform.position - transform.position;
         directionToLadder.y = 0;
         ladderTargetRotation = Quaternion.LookRotation(directionToLadder.normalized);
         
-        // Рассчитываем центр лестницы для ориентации камеры
         ladderCenter = currentLadder.bounds.center;
-        ladderCenter.y = transform.position.y; // Сохраняем текущую высоту игрока
+        ladderCenter.y = transform.position.y;
         
-        // Рассчитываем позицию передней грани лестницы с учетом snap distance
         Vector3 ladderForward = currentLadder.transform.forward;
         Vector3 ladderFrontPosition = currentLadder.bounds.center + 
                                     ladderForward * (currentLadder.bounds.size.z / 2);
         
-        // Целевая позиция: передняя грань + отступ (назад от лестницы)
         ladderTargetPosition = ladderFrontPosition - ladderForward * ladderSnapDistance;
         ladderTargetPosition.y = transform.position.y;
         
-        // Запускаем анимацию входа
-        if (climbAnimator != null)
-        {
-            climbAnimator.Play("Climb");
-        }
+        if (climbAnimator != null) climbAnimator.Play("Climb");
         
-        // Отключаем физику
         rb.isKinematic = true;
         rb.linearVelocity = Vector3.zero;
     }
@@ -197,28 +369,22 @@ public class PlayerController : MonoBehaviour
         ladderTransitionTimer += Time.deltaTime;
         float progress = Mathf.Clamp01(ladderTransitionTimer / ladderEnterDuration);
         
-        // Плавное перемещение и поворот
         transform.position = Vector3.Lerp(ladderStartPosition, ladderTargetPosition, progress);
         transform.rotation = Quaternion.Slerp(ladderStartRotation, ladderTargetRotation, progress);
         
-        // Ориентация камеры к центру лестницы
         Vector3 lookDirection = ladderCenter - playerCamera.transform.position;
-        lookDirection.y = 0; // Только горизонтальное направление
+        lookDirection.y = 0;
         Quaternion targetCameraRotation = Quaternion.LookRotation(lookDirection);
         
-        // Применяем поворот камеры
         playerCamera.transform.rotation = Quaternion.Slerp(
             playerCamera.transform.rotation, 
             targetCameraRotation, 
             progress
         );
         
-        // Завершение входа
         if (progress >= 1f)
         {
             ladderState = LadderState.OnLadder;
-            
-            // Фиксируем окончательную позицию и поворот
             transform.position = ladderTargetPosition;
             transform.rotation = ladderTargetRotation;
             playerCamera.transform.rotation = targetCameraRotation;
@@ -230,12 +396,10 @@ public class PlayerController : MonoBehaviour
         float verticalInput = Input.GetAxisRaw("Vertical");
         Vector3 climbDirection = Vector3.up * verticalInput;
         
-        // Движение вверх/вниз
         if (Mathf.Abs(verticalInput) > 0.1f)
         {
             Vector3 newPosition = transform.position + climbDirection * climbSpeed * Time.fixedDeltaTime;
             
-            // Обновляем позицию относительно лестницы
             Vector3 ladderForward = currentLadder.transform.forward;
             Vector3 ladderFrontPosition = currentLadder.bounds.center + 
                                         ladderForward * (currentLadder.bounds.size.z / 2);
@@ -244,14 +408,12 @@ public class PlayerController : MonoBehaviour
             
             transform.position = ladderTargetPosition;
             
-            // Проверка достижения верха
             if (verticalInput > 0 && CheckTopReached())
             {
                 StartLadderExit(true);
                 return;
             }
             
-            // Проверка достижения низа
             if (verticalInput < 0 && isGrounded)
             {
                 StartLadderExit(false);
@@ -259,7 +421,6 @@ public class PlayerController : MonoBehaviour
             }
         }
         
-        // Обновление ориентации камеры к центру лестницы
         Vector3 lookDirection = ladderCenter - playerCamera.transform.position;
         lookDirection.y = 0;
         playerCamera.transform.rotation = Quaternion.LookRotation(lookDirection);
@@ -283,10 +444,8 @@ public class PlayerController : MonoBehaviour
     {
         ladderState = isTopExit ? LadderState.ExitingTop : LadderState.ExitingBottom;
         ladderTransitionTimer = 0f;
-        
         ladderStartPosition = transform.position;
         
-        // Рассчитываем целевую позицию для выхода
         Vector3 exitDirection = -currentLadder.transform.forward;
         
         if (isTopExit)
@@ -295,22 +454,12 @@ public class PlayerController : MonoBehaviour
                 exitDirection * ladderExitForwardDistance + 
                 Vector3.up * ladderExitUpDistance;
             
-            // Запускаем анимацию выхода сверху
-            if (climbAnimator != null)
-            {
-                climbAnimator.Play("TopClimbOver");
-            }
+            if (climbAnimator != null) climbAnimator.Play("TopClimbOver");
         }
         else
         {
-            ladderTargetPosition = transform.position - 
-                exitDirection * ladderExitForwardDistance;
-            
-            // Запускаем анимацию выхода снизу
-            if (climbAnimator != null)
-            {
-                climbAnimator.Play("BottomClimbOver");
-            }
+            ladderTargetPosition = transform.position - exitDirection * ladderExitForwardDistance;
+            if (climbAnimator != null) climbAnimator.Play("BottomClimbOver");
         }
     }
 
@@ -319,19 +468,13 @@ public class PlayerController : MonoBehaviour
         ladderTransitionTimer += Time.deltaTime;
         float progress = Mathf.Clamp01(ladderTransitionTimer / ladderExitDuration);
         
-        // Плавное перемещение
         transform.position = Vector3.Lerp(ladderStartPosition, ladderTargetPosition, progress);
         
-        // Фиксация камеры на лестнице при выходе
         Vector3 lookDirection = ladderCenter - playerCamera.transform.position;
         lookDirection.y = 0;
         playerCamera.transform.rotation = Quaternion.LookRotation(lookDirection);
         
-        // Завершение выхода
-        if (progress >= 1f)
-        {
-            CompleteLadderExit();
-        }
+        if (progress >= 1f) CompleteLadderExit();
     }
 
     void CompleteLadderExit()
@@ -350,7 +493,6 @@ public class PlayerController : MonoBehaviour
 
     void HandleCameraRotation()
     {
-        // Убрать проверку isAgainstWall из условия
         if (ladderState != LadderState.None) return;
     
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -385,7 +527,8 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpVelocity, ForceMode.VelocityChange);
 
-        if (Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f)
+        if (Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f || 
+            Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f)
         {
             Vector3 forwardForce = (transform.forward * Input.GetAxisRaw("Vertical") +
                                   transform.right * Input.GetAxisRaw("Horizontal")).normalized;
@@ -394,23 +537,8 @@ public class PlayerController : MonoBehaviour
 
         jumpsRemaining--;
         coyoteTimeCounter = 0;
-    }
-
-    void CheckGround()
-    {
-        bool wasGrounded = isGrounded;
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
-
-        if (!wasGrounded && isGrounded)
-        {
-            jumpsRemaining = maxJumps;
-            isJumping = false;
-        }
-
-        if (isGrounded)
-            coyoteTimeCounter = coyoteTime;
-        else
-            coyoteTimeCounter -= Time.deltaTime;
+        fallTimeCounter = 0f;
+        fallShakeDelayTimer = 0f; // Сброс таймера при прыжке
     }
 
     void CheckLadder()
@@ -451,10 +579,10 @@ public class PlayerController : MonoBehaviour
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
-        // Всегда разрешать движение, даже при столкновении со стеной
         if (moveHorizontal != 0 || moveVertical != 0)
         {
-            Vector3 moveDirection = (transform.right * moveHorizontal + transform.forward * moveVertical).normalized;
+            Vector3 moveDirection = (transform.right * moveHorizontal + 
+                                   transform.forward * moveVertical).normalized;
             rb.linearVelocity = new Vector3(
                 moveDirection.x * currentSpeed,
                 rb.linearVelocity.y,
@@ -463,7 +591,6 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Останавливать только горизонтальное движение
             rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
         }
     }
@@ -478,18 +605,11 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                float additionalForce = Mathf.Sqrt(2 * Mathf.Abs(Physics.gravity.y) * (maxJumpHeight - baseJumpHeight));
+                float additionalForce = Mathf.Sqrt(2 * Mathf.Abs(Physics.gravity.y) * 
+                                      (maxJumpHeight - baseJumpHeight));
                 rb.AddForce(Vector3.up * additionalForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
             }
         }
-    }
-
-    void HandleFall()
-    {
-        if (rb.linearVelocity.y < 0 && ladderState == LadderState.None)
-            rb.linearVelocity += Vector3.up * Physics.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime;
-        else if (rb.linearVelocity.y > 0 && !Input.GetButton("Jump") && !isGrounded)
-            rb.linearVelocity += Vector3.up * Physics.gravity.y * (lowJumpMultiplier - 1) * Time.fixedDeltaTime;
     }
 
     void OnDrawGizmosSelected()

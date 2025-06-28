@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LevelLoader : MonoBehaviour
+public class Teleporter : MonoBehaviour
 {
     public Teleport Teleport;
     [Header("Loc Teleport Settings")]
