@@ -23,7 +23,7 @@ public class CloneManagment : MonoBehaviour
         int PositionX = rnd.Next(-300, 300);
         int PositionY = rnd.Next(-50, 400);
         int RandZ = rnd.Next(0, 1);
-        if (Math.Sqrt(math.square(PositionX) + math.square(PositionY)) < 50)
+        if (Math.Sqrt(math.square(PositionX) + math.square(PositionY)) < 100)
         {
             if (RandZ == 1) PositionZ = rnd.Next(200, 300);
             else PositionZ = rnd.Next(-300, -200);
