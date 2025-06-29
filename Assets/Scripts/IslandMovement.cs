@@ -1,181 +1,130 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class IslandMovement : MonoBehaviour
+public class FloatingPlatform : MonoBehaviour
 {
-    [Header("Oscillation Settings")]
-    public float amplitude = 0.5f;
-    public float frequency = 0.5f;
-
-    [Header("Sink Settings")]
-    public float sinkDistance = 1f;
-    public float sinkSpeed = 2f;
-    public float sinkHoldTime = 0.3f;
-
-    [Header("Collider Settings")]
-    public float platformTopOffset = 0.5f; // Отступ для проверки верхней границы
-    public float playerBottomOffset = 0.5f; // Отступ для проверки нижней границы игрока
-
-    private Vector3 startPosition;
-    private bool isSinking = false;
-    private bool hasSunkForCurrentPlayer = false;
-    private float sinkTimer;
-    private float sinkProgress;
-    private Vector3 sinkStartPosition;
-    private Vector3 sinkTargetPosition;
-    private Transform currentPlayer;
-    private List<Collider> platformColliders = new List<Collider>();
+    [Header("Floating Settings")]
+    public float floatAmplitude = 0.5f;
+    public float floatSpeed = 1f;
+    public float positionSmoothTime = 0.1f;
+    
+    [Header("Tilt Restrictions")]
+    public float maxTiltAngle = 10f;
+    public float tiltRecoverySpeed = 5f;
+    public float rotationSmoothTime = 0.1f;
+    
+    [Header("Sag Settings")]
+    public float maxSag = 0.2f;
+    public float sagPerMassUnit = 0.01f;
+    
+    private Vector3 initialPosition;
+    private Rigidbody rb;
+    private List<Rigidbody> objectsOnPlatform = new List<Rigidbody>();
+    private float totalMass = 0f;
+    private Vector3 positionVelocity;
+    private Vector3 rotationVelocity;
 
     void Start()
     {
-        startPosition = transform.position;
-        CachePlatformColliders();
-    }
-
-    // Кэшируем все коллайдеры платформы и ее дочерних объектов
-    private void CachePlatformColliders()
-    {
-        platformColliders.Clear();
+        rb = GetComponent<Rigidbody>();
+        initialPosition = transform.position;
         
-        // Получаем все коллайдеры у текущего объекта и его детей
-        Collider[] colliders = GetComponentsInChildren<Collider>();
-        foreach (Collider col in colliders)
-        {
-            // Игнорируем триггеры и коллайдеры игрока
-            if (!col.isTrigger && !col.CompareTag("Player") && !col.CompareTag("Legs"))
-            {
-                platformColliders.Add(col);
-            }
-        }
-
-        // Если коллайдеров нет - создаем простой BoxCollider
-        if (platformColliders.Count == 0)
-        {
-            Debug.LogWarning("No colliders found on platform! Adding a BoxCollider.");
-            BoxCollider newCollider = gameObject.AddComponent<BoxCollider>();
-            platformColliders.Add(newCollider);
-        }
+        // Важные физические настройки
+        rb.isKinematic = true; // Теперь кинематический
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        
+        // Замораживаем ненужные оси
+        rb.constraints = RigidbodyConstraints.FreezePositionX | 
+                         RigidbodyConstraints.FreezePositionZ |
+                         RigidbodyConstraints.FreezeRotationY;
     }
 
-    void Update()
+    void OnCollisionEnter(Collision collision)
     {
-        if (!isSinking)
+        // Игнорируем триггеры и объекты без Rigidbody
+        if (collision.collider.isTrigger) return;
+        
+        Rigidbody otherRb = collision.collider.attachedRigidbody;
+        if (otherRb != null && !objectsOnPlatform.Contains(otherRb))
         {
-            // Плавное движение вверх-вниз
-            float newY = startPosition.y + Mathf.Sin(Time.time * frequency) * amplitude;
-            transform.position = new Vector3(startPosition.x, newY, startPosition.z);
-        }
-        else
-        {
-            HandleSinking();
-        }
-    }
-
-    private void HandleSinking()
-    {
-        sinkTimer += Time.deltaTime;
-
-        // Плавное опускание
-        if (sinkTimer < sinkProgress)
-        {
-            float t = sinkTimer / sinkProgress;
-            transform.position = Vector3.Lerp(sinkStartPosition, sinkTargetPosition, t);
-        }
-        // Удерживаем внизу
-        else if (sinkTimer < sinkProgress + sinkHoldTime)
-        {
-            transform.position = sinkTargetPosition;
-        }
-        // Плавное поднятие
-        else if (sinkTimer < sinkProgress * 2 + sinkHoldTime)
-        {
-            float adjustedTime = sinkTimer - sinkProgress - sinkHoldTime;
-            float t = adjustedTime / sinkProgress;
-            transform.position = Vector3.Lerp(sinkTargetPosition, sinkStartPosition, t);
-        }
-        // Завершение цикла
-        else
-        {
-            isSinking = false;
-            hasSunkForCurrentPlayer = false;
-            currentPlayer = null;
-        }
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Legs") && !isSinking && !hasSunkForCurrentPlayer)
-        {
-            // Получаем ссылку на игрока
-            Transform player = other.transform.root;
+            objectsOnPlatform.Add(otherRb);
+            totalMass += otherRb.mass;
             
-            // Проверяем, что игрок действительно приземляется сверху
-            if (IsPlayerAbovePlatform(other, player))
+            // Важно для игрока: улучшаем отслеживание столкновений
+            if (otherRb.CompareTag("Player"))
             {
-                currentPlayer = player;
-                StartSinking();
+                otherRb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                if (otherRb.gameObject.GetComponent<CapsuleCollider>() != null)
+                {
+                    otherRb.gameObject.GetComponent<CapsuleCollider>().material.dynamicFriction = 0.6f;
+                }
             }
         }
     }
 
-    private bool IsPlayerAbovePlatform(Collider legsCollider, Transform player)
+    void OnCollisionExit(Collision collision)
     {
-        // Получаем нижнюю границу игрока (с небольшим отступом)
-        float playerBottom = legsCollider.bounds.min.y + playerBottomOffset;
+        if (collision.collider.isTrigger) return;
         
-        // Получаем верхнюю границу платформы
-        float platformTop = GetPlatformTop() - platformTopOffset;
-        
-        return playerBottom > platformTop;
-    }
-
-    // Находим самую верхнюю точку платформы среди всех коллайдеров
-    private float GetPlatformTop()
-    {
-        float maxY = float.MinValue;
-        
-        foreach (Collider col in platformColliders)
+        Rigidbody otherRb = collision.collider.attachedRigidbody;
+        if (otherRb != null && objectsOnPlatform.Contains(otherRb))
         {
-            if (col != null && col.enabled)
-            {
-                float top = col.bounds.max.y;
-                if (top > maxY) maxY = top;
-            }
+            objectsOnPlatform.Remove(otherRb);
+            totalMass -= otherRb.mass;
         }
-        
-        return maxY;
     }
 
-    private void StartSinking()
+    void FixedUpdate()
     {
-        isSinking = true;
-        hasSunkForCurrentPlayer = true;
-        sinkTimer = 0f;
+        ApplyFloatingMotion();
+        ApplyTiltRestrictions();
+    }
+
+    private void ApplyFloatingMotion()
+    {
+        // Плавное синусоидальное движение
+        float yOffset = Mathf.Sin(Time.time * floatSpeed) * floatAmplitude;
         
-        // Рассчитываем время для опускания
-        sinkProgress = sinkDistance / sinkSpeed;
+        // Рассчет проседания с плавным изменением
+        float targetSag = Mathf.Clamp(totalMass * sagPerMassUnit, 0f, maxSag);
         
-        sinkStartPosition = transform.position;
-        sinkTargetPosition = new Vector3(
-            transform.position.x,
-            transform.position.y - sinkDistance,
-            transform.position.z
+        // Целевая позиция с плавным сглаживанием
+        Vector3 targetPosition = initialPosition + Vector3.up * (yOffset - targetSag);
+        Vector3 newPosition = Vector3.SmoothDamp(
+            rb.position, 
+            targetPosition, 
+            ref positionVelocity, 
+            positionSmoothTime
         );
+        
+        rb.MovePosition(newPosition);
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void ApplyTiltRestrictions()
     {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            collision.transform.SetParent(transform);
-        }
+        // Целевое вращение - без наклона
+        Quaternion targetRotation = Quaternion.Euler(0, rb.rotation.eulerAngles.y, 0);
+        
+        // Плавное сглаживание вращения
+        Quaternion newRotation = Quaternion.Slerp(
+            rb.rotation, 
+            targetRotation, 
+            tiltRecoverySpeed * Time.fixedDeltaTime
+        );
+        
+        // Ограничение углов наклона
+        Vector3 euler = newRotation.eulerAngles;
+        euler.x = ClampAngle(euler.x, -maxTiltAngle, maxTiltAngle);
+        euler.z = ClampAngle(euler.z, -maxTiltAngle, maxTiltAngle);
+        
+        rb.MoveRotation(Quaternion.Euler(euler));
     }
 
-    private void OnCollisionExit(Collision collision)
+    private float ClampAngle(float angle, float min, float max)
     {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            collision.transform.SetParent(null);
-        }
+        if (angle > 180f) angle -= 360f;
+        if (angle < -180f) angle += 360f;
+        return Mathf.Clamp(angle, min, max);
     }
 }
