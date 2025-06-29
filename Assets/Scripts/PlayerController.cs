@@ -244,7 +244,7 @@ private Vector3 cameraTargetPosition;
             if (fallShakeDelayTimer >= fallShakeDelay)
             {
                 float fallSpeed = Mathf.Abs(rb.linearVelocity.y);
-                float shakeIntensity = Mathf.Clamp01(fallSpeed / 20f) * maxFallShakeIntensity;
+                float shakeIntensity = Mathf.Clamp01(fallSpeed / 60f) * maxFallShakeIntensity;
 
                 float x = Mathf.PerlinNoise(fallShakeSeed, Time.time * fallShakeSpeed) * 2f - 1f;
                 float y = Mathf.PerlinNoise(fallShakeSeed + 10f, Time.time * fallShakeSpeed) * 2f - 1f;
