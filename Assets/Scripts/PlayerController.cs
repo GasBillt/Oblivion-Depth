@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -51,6 +52,14 @@ public class PlayerController : MonoBehaviour
     public float ladderExitUpDistance = 0.5f;
     public Image ladderPrompt;
 
+    [Header("Take Settings")]
+    public Image mainDot;
+    public Image eTakeDot;
+    public Text takeObjectNameText;
+    public ObjectsManager objectsManager;
+
+    private GameObject currentTakeObject;
+
     [Header("References")]
     public Transform groundCheck;
     public Transform takeCheck;
@@ -60,6 +69,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundLayer;
     public LayerMask ladderLayer;
     public LayerMask wallLayer;
+    public LayerMask takeLayer;
     public Animator climbAnimator;
 
     private Rigidbody rb;
@@ -97,12 +107,14 @@ public class PlayerController : MonoBehaviour
     private float headBobTimer = 0;           // Таймер для покачивания головой
     private float currentTilt = 0;            // Текущий угол наклона
 
+    private List<GameObject> takeObjectsInRange = new List<GameObject>();
+
     // ========== START FUNCTION (добавлена инициализация) ==========
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        
+
         CapsuleCollider col = GetComponent<CapsuleCollider>();
         if (col != null)
         {
@@ -117,7 +129,7 @@ public class PlayerController : MonoBehaviour
 
         if (playerCamera == null)
             playerCamera = GetComponentInChildren<Camera>();
-        
+
         // Критически важная инициализация позиции камеры
         originalCameraLocalPosition = playerCamera.transform.localPosition;
         cameraTargetPosition = originalCameraLocalPosition;
@@ -135,40 +147,42 @@ public class PlayerController : MonoBehaviour
 
         if (ladderPrompt != null)
             ladderPrompt.gameObject.SetActive(false);
+        if (eTakeDot != null) eTakeDot.gameObject.SetActive(false);
+        if (takeObjectNameText != null) takeObjectNameText.gameObject.SetActive(false);
     }
 
     void Update()
     {
         HandleInput();
-        
+
         switch (ladderState)
         {
             case LadderState.Entering:
                 UpdateLadderEnter();
                 break;
-                
+
             case LadderState.ExitingTop:
             case LadderState.ExitingBottom:
                 UpdateLadderExit();
                 break;
-                
+
             case LadderState.None:
                 HandleCameraRotation();
                 break;
         }
 
         HandleJumpBuffer();
-        
-        HandleCameraEffects();
-        HandleHeadBobbing(); // Добавлен вызов обработки покачивания
-        
+
+        UpdateTakeObjectDetection();
+        HandleTakeInput();
+
         // Плавное перемещение камеры к целевой позиции
         playerCamera.transform.localPosition = Vector3.Lerp(
             playerCamera.transform.localPosition,
             cameraTargetPosition,
             Time.deltaTime * 15f
         );
-        
+
         // Дополнительная проверка минимальной высоты камеры
         if (playerCamera.transform.localPosition.y < 0.15f)
         {
@@ -177,6 +191,9 @@ public class PlayerController : MonoBehaviour
             playerCamera.transform.localPosition = clampedPosition;
             cameraTargetPosition = clampedPosition;
         }
+        HandleHeadBobbing();
+        UpdateCurrentTakeObject();
+        HandleTakeInput();
     }
     void FixedUpdate()
     {
@@ -226,6 +243,71 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (((1 << other.gameObject.layer) & takeLayer) != 0 && other.CompareTag("Take"))
+        {
+            if (!takeObjectsInRange.Contains(other.gameObject))
+            {
+                takeObjectsInRange.Add(other.gameObject);
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (takeObjectsInRange.Contains(other.gameObject))
+        {
+            takeObjectsInRange.Remove(other.gameObject);
+        }
+    }
+
+    // Новый метод для обновления текущего объекта
+    void UpdateCurrentTakeObject()
+    {
+        GameObject closestObject = null;
+        float closestDistance = Mathf.Infinity;
+
+        // Удаляем уничтоженные объекты из списка
+        takeObjectsInRange.RemoveAll(item => item == null);
+
+        foreach (GameObject obj in takeObjectsInRange)
+        {
+            float distance = Vector3.Distance(transform.position, obj.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closestObject = obj;
+            }
+        }
+
+        if (closestObject != currentTakeObject)
+        {
+            currentTakeObject = closestObject;
+            UpdateTakeUI();
+        }
+    }
+
+    void HandleTakeInput()
+    {
+        if (Input.GetKeyDown(KeyCode.E) && currentTakeObject != null)
+        {
+            if (objectsManager != null)
+            {
+                // Добавляем имя объекта в массив
+                System.Array.Resize(ref objectsManager.playerObjects, objectsManager.playerObjects.Length + 1);
+                objectsManager.playerObjects[objectsManager.playerObjects.Length - 1] = currentTakeObject.name;
+            }
+
+            // Удаляем объект из сцены
+            Destroy(currentTakeObject);
+
+            // Сбрасываем текущий объект
+            currentTakeObject = null;
+            UpdateTakeUI();
+        }
+    }
+
     // ================== FALL HANDLING ==================
     void HandleFall()
     {
@@ -245,107 +327,90 @@ public class PlayerController : MonoBehaviour
     }
 
     // ========== HANDLE CAMERA EFFECTS FUNCTION ==========
-    void HandleCameraEffects()
+    void UpdateTakeObjectDetection()
     {
-        // Сброс смещений
-        landingDropOffset = Vector3.zero;
-        cameraShakeOffset = Vector3.zero;
+        // Сбрасываем текущий объект
+        currentTakeObject = null;
 
-        // Эффекты не применяются на лестнице
-        if (ladderState != LadderState.None)
+        // Получаем все объекты в зоне действия
+        Collider[] hitColliders = Physics.OverlapBox(
+            takeCheck.position,
+            takeCheck.localScale / 2,
+            takeCheck.rotation,
+            takeLayer
+        );
+
+        // Ищем самый главный объект в иерархии
+        GameObject highestParent = null;
+        int highestDepth = -1;
+
+        foreach (var collider in hitColliders)
         {
-            cameraTargetPosition = originalCameraLocalPosition;
-            fallShakeDelayTimer = 0f;
-            return;
-        }
-
-        // Тряска камеры при падении (с задержкой)
-        if (!isGrounded && rb.linearVelocity.y < 0 && !isLanding)
-        {
-            fallShakeDelayTimer += Time.deltaTime;
-
-            if (fallShakeDelayTimer >= fallShakeDelay)
+            GameObject currentObject = collider.gameObject;
+            int currentDepth = 0;
+            
+            // Поднимаемся вверх по иерархии
+            while (currentObject.transform.parent != null)
             {
-                float fallSpeed = Mathf.Abs(rb.linearVelocity.y);
-                float shakeIntensity = Mathf.Clamp01(fallSpeed / 60f) * maxFallShakeIntensity;
-
-                float x = Mathf.PerlinNoise(fallShakeSeed, Time.time * fallShakeSpeed) * 2f - 1f;
-                float y = Mathf.PerlinNoise(fallShakeSeed + 10f, Time.time * fallShakeSpeed) * 2f - 1f;
-                float z = Mathf.PerlinNoise(fallShakeSeed + 20f, Time.time * fallShakeSpeed) * 2f - 1f;
-
-                cameraShakeOffset = new Vector3(x, y, z) * shakeIntensity;
+                currentObject = currentObject.transform.parent.gameObject;
+                currentDepth++;
             }
-        }
-        else
-        {
-            fallShakeDelayTimer = 0f;
-        }
-
-        // Эффект приземления
-        if (isLanding)
-        {
-            landingTimer += Time.deltaTime;
-            float progress;
-
-            if (landingTimer <= landingDropDuration)
+            
+            // Выбираем объект с наибольшей глубиной иерархии
+            if (currentDepth > highestDepth)
             {
-                progress = landingTimer / landingDropDuration;
-                float dropAmount = landingDropAmount * (landingImpactSpeed / minLandingSpeed);
-                landingDropOffset = Vector3.down * dropAmount * progress;
-            }
-            else
-            {
-                progress = (landingTimer - landingDropDuration) / landingReturnDuration;
-                float dropAmount = landingDropAmount * (landingImpactSpeed / minLandingSpeed);
-                landingDropOffset = Vector3.down * dropAmount * (1f - progress);
-            }
-
-            if (landingTimer >= landingDropDuration + landingReturnDuration)
-            {
-                isLanding = false;
-                landingDropOffset = Vector3.zero;
+                highestParent = currentObject;
+                highestDepth = currentDepth;
             }
         }
 
-        // Обновление целевой позиции камеры
-        cameraTargetPosition = originalCameraLocalPosition + landingDropOffset + cameraShakeOffset;
-        
-        // Гарантируем, что камера не опускается ниже минимальной высоты
-        if (cameraTargetPosition.y < 0.15f)
+        currentTakeObject = highestParent;
+        UpdateTakeUI();
+    }
+    
+    void UpdateTakeUI()
+    {
+        bool showTakeUI = currentTakeObject != null;
+
+        if (mainDot != null) mainDot.gameObject.SetActive(!showTakeUI);
+        if (eTakeDot != null) eTakeDot.gameObject.SetActive(showTakeUI);
+
+        if (takeObjectNameText != null)
         {
-            cameraTargetPosition.y = 0.15f;
+            takeObjectNameText.gameObject.SetActive(showTakeUI);
+            if (showTakeUI) takeObjectNameText.text = currentTakeObject.name;
         }
     }
 
     private void HandleHeadBobbing()
     {
         if (ladderState != LadderState.None) return;
-        
+
         // Рассчитываем силу покачивания в зависимости от движения
         float horizontalInput = Mathf.Abs(Input.GetAxis("Horizontal"));
         float verticalInput = Mathf.Abs(Input.GetAxis("Vertical"));
         float inputMagnitude = new Vector2(horizontalInput, verticalInput).magnitude;
-        
+
         if (inputMagnitude > 0.1f && isGrounded)
         {
             // Усиливаем эффект при беге
             float bobMultiplier = (currentSpeed == runSpeed) ? runBobMultiplier : 1f;
-            
+
             // Рассчитываем новую позицию камеры с покачиванием
             headBobTimer += Time.deltaTime * walkBobSpeed * bobMultiplier;
             float newYPos = defaultYPos + Mathf.Sin(headBobTimer) * walkBobAmount * bobMultiplier;
-            
+
             // Рассчитываем наклон камеры
             float targetTilt = Mathf.Sin(headBobTimer * 0.5f) * tiltAngle * bobMultiplier;
             currentTilt = Mathf.Lerp(currentTilt, targetTilt, tiltSmoothness * Time.deltaTime);
-            
+
             // Применяем изменения к камере
             cameraTargetPosition = new Vector3(
                 cameraTargetPosition.x,
                 newYPos,
                 cameraTargetPosition.z
             );
-            
+
             // Применяем наклон камеры
             playerCamera.transform.localRotation = Quaternion.Euler(
                 xRotation, 
@@ -362,7 +427,7 @@ public class PlayerController : MonoBehaviour
                 defaultYPos, 
                 Time.deltaTime * 5f
             );
-            
+
             // Плавный возврат наклона
             currentTilt = Mathf.Lerp(currentTilt, 0, tiltSmoothness * Time.deltaTime);
             playerCamera.transform.localRotation = Quaternion.Euler(

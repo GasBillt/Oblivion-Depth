@@ -35,7 +35,6 @@ public class Teleport : MonoBehaviour
 
     private IEnumerator FlashAnimation(string loc)
     {
-        Debug.Log("4");
         // Мгновенная телепортация при полной непрозрачности
         Teleporting(loc);
 
@@ -62,6 +61,7 @@ public class Teleport : MonoBehaviour
             return;
         }
 
+        Debug.Log("5");
         // Случай с пустой локацией или "-"
         if (string.IsNullOrEmpty(loc) || loc == "-")
         {
@@ -70,7 +70,8 @@ public class Teleport : MonoBehaviour
                 Debug.LogError("ErrorLog: Invalid backup coordinates");
                 return;
             }
-            Player.transform.position = backupCoords;
+            Debug.Log(backupCoords);
+            Player.transform.position = backupCoords; 
             return;
         }
 
