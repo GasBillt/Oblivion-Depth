@@ -21,8 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: IceBall
-  m_Shader: {fileID: -6465566751694194690, guid: b577f298967fd1c4a8a4936f6373a3de,
-    type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: b577f298967fd1c4a8a4936f6373a3de, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -128,6 +127,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Alpha: 0.928
     - _AlphaClip: 0
     - _Blend: 0
     - _BumpScale: 1
