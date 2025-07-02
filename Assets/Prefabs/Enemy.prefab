@@ -30,9 +30,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.32825, y: 0.32825, z: 0.32825}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 6224545607138435795}
-  - {fileID: 3665899715577963867}
+  m_Children: []
   m_Father: {fileID: 5033326757650474232}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!198 &7639095086654972943
@@ -4863,10 +4861,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.7537777, y: 2.7537777, z: 2.7537777}
+  m_LocalScale: {x: 0.90392756, y: 0.90392756, z: 0.90392756}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2238808100076569543}
+  m_Father: {fileID: 5033326757650474232}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!198 &496958706780944007
 ParticleSystem:
@@ -9695,10 +9693,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3.0464585, y: 3.0464585, z: 3.0464585}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2238808100076569543}
+  m_Father: {fileID: 5033326757650474232}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!330 &3289663273674224087
 ParticleSystemForceField:
@@ -10207,6 +10205,7 @@ GameObject:
   - component: {fileID: 498494018745472853}
   - component: {fileID: 3992671102979521863}
   - component: {fileID: 1204461612339296136}
+  - component: {fileID: 5789324815362990490}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -10227,7 +10226,9 @@ Transform:
   m_LocalScale: {x: 3.8815, y: 3.8815, z: 3.8815}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 3665899715577963867}
   - {fileID: 2238808100076569543}
+  - {fileID: 6224545607138435795}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &498494018745472853
@@ -10304,3 +10305,16 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5789324815362990490
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8446759517055864094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b12cdc258c8c9b4787f0d4a7ad36d98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DistanceToStart: 30
