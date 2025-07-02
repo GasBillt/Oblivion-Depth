@@ -5,7 +5,14 @@ using System.Collections.Generic;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
+    [Header("Players Sanity Settings")]
+    public float Sanity = 100f; // Текущий уровень рассудка
+    public float maxSanity = 100f; // Максимальный уровень рассудка
+    public PlayerController playerController; // Ссылка на контроллер игрока
+    public DeathManager deathManager; // Ссылка на менеджер смерти
+
     [Header("Movement Settings")]
+    public bool canMove = true; 
     public float walkSpeed = 5f;
     public float runSpeed = 8f;
     public float climbSpeed = 3f;
@@ -149,11 +156,40 @@ public class PlayerController : MonoBehaviour
             ladderPrompt.gameObject.SetActive(false);
         if (eTakeDot != null) eTakeDot.gameObject.SetActive(false);
         if (takeObjectNameText != null) takeObjectNameText.gameObject.SetActive(false);
+
+        if (playerController == null)
+            playerController = GetComponent<PlayerController>();
+        
+        if (deathManager == null)
+            deathManager = FindObjectOfType<DeathManager>();
+        
+        // Инициализируем уровень рассудка
+        Sanity = maxSanity;
     }
 
     void Update()
     {
-        HandleInput();
+        if (deathManager.Dead)
+        {
+            canMove = false;
+        }
+        // Обновляем состояние движения игрока на основе статуса смерти
+        if (playerController != null && deathManager != null)
+        {
+            playerController.canMove = !deathManager.Dead;
+        }
+
+        // Проверяем уровень рассудка
+        if (Sanity <= 0 && !deathManager.Dead)
+        {
+            Sanity = 0;
+            HandleSanityDepletion();
+        }
+
+        if (canMove)
+        {
+            HandleInput();
+        }
 
         switch (ladderState)
         {
@@ -201,16 +237,45 @@ public class PlayerController : MonoBehaviour
         CheckGround();
         CheckWalls();
         CheckLadder();
-        
-        if (ladderState == LadderState.None)
+        if (canMove)
         {
-            HandleMovement();
-            HandleJump();
-            HandleFall();
+            if (ladderState == LadderState.None)
+            {
+                HandleMovement();
+                HandleJump();
+                HandleFall();
+            }
+            else if (ladderState == LadderState.OnLadder)
+            {
+                HandleLadderMovement();
+            }
         }
-        else if (ladderState == LadderState.OnLadder)
+    }
+
+    public void ChangeSanity(float amount)
+    {
+        Sanity = Mathf.Clamp(Sanity + amount, 0, maxSanity);
+        
+        // Дополнительные действия при изменении рассудка
+        if (amount < 0)
         {
-            HandleLadderMovement();
+            Debug.Log($"Sanity decreased by {-amount}. Current sanity: {Sanity}");
+        }
+    }
+
+    // Обработка истощения рассудка
+    private void HandleSanityDepletion()
+    {
+        if (deathManager != null)
+        {
+            deathManager.Dead = true;
+            Debug.Log("Player has lost all sanity! Death state activated.");
+        }
+
+        if (playerController != null)
+        {
+            playerController.canMove = false;
+            Debug.Log("Player movement disabled due to insanity.");
         }
     }
 
@@ -720,6 +785,7 @@ public class PlayerController : MonoBehaviour
 
     void HandleMovement()
     {
+        if (!canMove) return;
         float moveHorizontal = Input.GetAxisRaw("Horizontal");
         float moveVertical = Input.GetAxisRaw("Vertical");
 
@@ -741,6 +807,7 @@ public class PlayerController : MonoBehaviour
 
     void HandleJump()
     {
+        if (!canMove) return;
         if (isJumping && rb.linearVelocity.y > 0)
         {
             if (!Input.GetButton("Jump") || Time.time - jumpStartTime > 0.5f)
@@ -749,7 +816,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                float additionalForce = Mathf.Sqrt(2 * Mathf.Abs(Physics.gravity.y) * 
+                float additionalForce = Mathf.Sqrt(2 * Mathf.Abs(Physics.gravity.y) *
                                       (maxJumpHeight - baseJumpHeight));
                 rb.AddForce(Vector3.up * additionalForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
             }
