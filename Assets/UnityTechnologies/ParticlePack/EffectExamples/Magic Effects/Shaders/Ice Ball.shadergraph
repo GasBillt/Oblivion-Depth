@@ -957,8 +957,8 @@
     "m_ObjectId": "05985d6e898640508ed40e8bd4b330c5",
     "m_Title": "Colour",
     "m_Position": {
-        "x": -1617.333251953125,
-        "y": -281.333251953125
+        "x": -1617.33349609375,
+        "y": -281.33331298828127
     }
 }
 
@@ -1672,7 +1672,7 @@
         "m_Id": "0688426bdb954acea6c07d2ba8d95c0b"
     },
     "m_AllowMaterialOverride": false,
-    "m_SurfaceType": 1,
+    "m_SurfaceType": 0,
     "m_ZTestMode": 4,
     "m_ZWriteControl": 0,
     "m_AlphaMode": 0,
@@ -1846,13 +1846,13 @@
     "m_RefNameGeneratedByDisplayName": "Alpha",
     "m_DefaultReferenceName": "_Alpha",
     "m_OverrideReferenceName": "",
-    "m_GeneratePropertyBlock": true,
+    "m_GeneratePropertyBlock": false,
     "m_UseCustomSlotLabel": false,
     "m_CustomSlotLabel": "",
     "m_DismissedVersion": 0,
     "m_Precision": 0,
-    "overrideHLSLDeclaration": false,
-    "hlslDeclarationOverride": 0,
+    "overrideHLSLDeclaration": true,
+    "hlslDeclarationOverride": 2,
     "m_Hidden": false,
     "m_Value": 1.0,
     "m_FloatType": 1,
@@ -3176,8 +3176,8 @@
     "m_ObjectId": "7822d813387d4b1cb96700c94ac15890",
     "m_Title": "inner frost",
     "m_Position": {
-        "x": -3495.333251953125,
-        "y": -1848.66650390625
+        "x": -3495.333740234375,
+        "y": -1848.6668701171875
     }
 }
 
@@ -3658,8 +3658,8 @@
     "m_ObjectId": "9375aab4c7a54ee3a65daa373bd2e3bf",
     "m_Title": "Inner Frost Noise",
     "m_Position": {
-        "x": -2041.333251953125,
-        "y": -2665.3330078125
+        "x": -2041.333740234375,
+        "y": -2665.333251953125
     }
 }
 
@@ -3718,8 +3718,8 @@
     "m_ObjectId": "97c98adc1c60476385d6e08542ad894b",
     "m_Title": "Frosty surface",
     "m_Position": {
-        "x": -2877.333251953125,
-        "y": -1007.3331298828125
+        "x": -2877.33349609375,
+        "y": -1007.3333129882813
     }
 }
 
@@ -3917,8 +3917,8 @@
     "m_ObjectId": "9e16107863054f35ae7b43b20723be14",
     "m_Title": "Refract",
     "m_Position": {
-        "x": -3488.66650390625,
-        "y": -355.333251953125
+        "x": -3488.667236328125,
+        "y": -355.3333435058594
     }
 }
 
