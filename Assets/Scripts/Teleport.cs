@@ -43,9 +43,9 @@ public class Teleport : MonoBehaviour
 
     private void FlashBang(string loc)
     {
-        // Debug.Log("3");
-        // flashbangImage.gameObject.SetActive(true);
-        // flashbangImage.color = new Color(1f, 1f, 1f, 1f);
+        Debug.Log("3");
+        flashbangImage.gameObject.SetActive(true);
+        flashbangImage.color = new Color(1f, 1f, 1f, 1f);
         StartCoroutine(FlashAnimation(loc));
     }
 
