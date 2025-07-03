@@ -2,29 +2,89 @@ using UnityEngine;
 
 public class LevelManager : MonoBehaviour
 {
-    public Vector3[] levelPoints = new Vector3[5];
-    public string[] LocName = new string[5];
-    private void Start()
+    public int LevelsCount = 1;
+    public string currentLevel;
+    public Vector3[] LevelPoints;
+    public GameObject[] Locations;
+    public string[] LocName;
+
+    void Awake()
     {
-        CoordsMassive();
-        LocNamesMassive();
+        // Изменяем размеры массивов в соответствии с LevelsCount
+        ResizeArray(ref LevelPoints, LevelsCount);
+        ResizeArray(ref Locations, LevelsCount);
+        ResizeArray(ref LocName, LevelsCount);
     }
 
-    public void LocNamesMassive()
+    void Start()
     {
-        LocName[0] = "k";
-        LocName[1] = "l";
-        LocName[2] = "b";
-        LocName[3] = "h";
-        LocName[4] = "";
+        // Заполняем массив LocName именами объектов из Locations
+        for (int i = 0; i < LevelsCount; i++)
+        {
+            if (Locations[i] != null)
+            {
+                LocName[i] = Locations[i].name;
+            }
+            else
+            {
+                LocName[i] = "Empty";
+            }
+        }
     }
 
-    public void CoordsMassive()
+    // Вспомогательный метод для изменения размера массива с сохранением данных
+    private void ResizeArray<T>(ref T[] array, int newSize)
     {
-        levelPoints[0] = new Vector3(1f, 2f, 3f);
-        levelPoints[1] = new Vector3(4f, 5f, 6f);
-        levelPoints[2] = new Vector3(7f, 8f, 9f);
-        levelPoints[3] = new Vector3(10f, 11f, 12f);
-        levelPoints[4] = new Vector3(13f, 14f, 15f);
+        if (array == null)
+        {
+            array = new T[newSize];
+            return;
+        }
+
+        if (newSize == array.Length) return;
+
+        T[] newArray = new T[newSize];
+        int elementsToCopy = Mathf.Min(array.Length, newSize);
+        for (int i = 0; i < elementsToCopy; i++)
+        {
+            newArray[i] = array[i];
+        }
+        array = newArray;
+    }
+
+    public void LevelLoad(string loc)
+    {
+        if (loc == null) return;
+        
+        // Деактивируем все уровни
+        for (int i = 0; i < Locations.Length; i++)
+        {
+            if (Locations[i] != null)
+            {
+                Locations[i].SetActive(false);
+            }
+        }
+
+        // Активируем только указанный уровень
+        bool levelFound = false;
+        for (int i = 0; i < LocName.Length; i++)
+        {
+            if (LocName[i] == loc)
+            {
+                if (Locations[i] != null)
+                {
+                    Locations[i].SetActive(true);
+                    currentLevel = loc; // Обновляем текущий уровень
+                    levelFound = true;
+                    Debug.Log($"Level activated: {loc}");
+                }
+                break; // Выходим после активации первого совпадения
+            }
+        }
+
+        if (!levelFound)
+        {
+            Debug.LogWarning($"Level '{loc}' not found in LocName array!");
+        }
     }
 }

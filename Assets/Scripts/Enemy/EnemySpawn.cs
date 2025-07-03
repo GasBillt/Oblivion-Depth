@@ -5,13 +5,15 @@ public class EnemySpawn : MonoBehaviour
     public Vector3 Spawn;          // Точка телепортации
     public Vector3 move;           // Направление и скорость движения
     public bool spawning = false;  // Флаг для активации телепортации
-    private int takeLayer;
+    
+    private int takeLayer;         // Кэшированный слой Take
 
     void Start()
     {
+        // Кэшируем слой для оптимизации
         takeLayer = LayerMask.NameToLayer("Take");
     }
-    
+
     void Update()
     {
         // Постоянное перемещение по вектору move
@@ -25,20 +27,28 @@ public class EnemySpawn : MonoBehaviour
         }
     }
 
-    // Обработка столкновений
+    // Обработка триггеров
     void OnTriggerEnter(Collider other)
     {
-        if (other == null) return;
-
+        // Начинаем поиск с текущего объекта коллизии
         Transform current = other.transform;
+        GameObject objectToDestroy = null;
+
+        // Поднимаемся вверх по иерархии, пока не найдем объект с нужным слоем
         while (current != null)
         {
-            if (current.gameObject != null && current.gameObject.layer == takeLayer)
+            if (current.gameObject.layer == takeLayer)
             {
-                Destroy(current.gameObject);
-                return;
+                objectToDestroy = current.gameObject;
+                break;
             }
             current = current.parent;
+        }
+
+        // Если нашли объект со слоем Take, уничтожаем его
+        if (objectToDestroy != null)
+        {
+            Destroy(objectToDestroy);
         }
     }
 }

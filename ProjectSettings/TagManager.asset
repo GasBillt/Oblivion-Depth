@@ -8,6 +8,7 @@ TagManager:
   - Ladder
   - MainPlayer
   - Legs
+  - Destroyer
   layers:
   - Default
   - TransparentFX

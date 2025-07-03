@@ -32,8 +32,6 @@ public class EnemyApproachingVFX : MonoBehaviour
 
         float Distance = math.sqrt(math.square(PlayerPosX - PosX) + math.square(PlayerPosY - PosY) + math.square(PlayerPosZ - PosZ));
 
-        Debug.Log(Distance);
-
         if (Distance < DistanceToStart)
         {
             GameObject.Find("Enemy Approaching VFX").GetComponent<Volume>().weight = 1 - (Distance / DistanceToStart);

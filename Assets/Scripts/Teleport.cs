@@ -12,11 +12,27 @@ public class Teleport : MonoBehaviour
 
     public void tp(float delay, string loc, Vector3 coords)
     {
-        Debug.Log("1");
+        Debug.Log($"Teleport called to {loc}");
         backupCoords = coords;
+        FindReferences(); // Перепроверяем ссылки перед запуском корутины
         StartCoroutine(DelayedFlash(delay, loc));
     }
 
+
+    private void FindReferences()
+    {
+        if (Player == null)
+        {
+            Player = GameObject.FindGameObjectWithTag("MainPlayer");
+            if (Player == null) Debug.LogError("Player reference not found!");
+        }
+
+        if (LevelManager == null)
+        {
+            LevelManager = FindObjectOfType<LevelManager>();
+            if (LevelManager == null) Debug.LogError("LevelManager reference not found!");
+        }
+    }
 
     private IEnumerator DelayedFlash(float delay, string loc)
     {
@@ -35,9 +51,24 @@ public class Teleport : MonoBehaviour
 
     private IEnumerator FlashAnimation(string loc)
     {
-        // Мгновенная телепортация при полной непрозрачности
+        FindReferences();
+    
+        if (LevelManager == null)
+        {
+            Debug.LogError("LevelManager is missing!");
+            yield break;
+        }
+    
+        // СНАЧАЛА телепортируем игрока
         Teleporting(loc);
-
+        
+        // ПОТОМ загружаем уровень
+        LevelManager.LevelLoad(loc);
+        LevelManager.currentLevel = loc;
+    
+        // Ожидаем конец кадра для применения изменений
+        yield return new WaitForEndOfFrame();
+    
         // Плавное исчезновение
         float duration = 0.5f;
         float elapsed = 0f;
@@ -48,50 +79,47 @@ public class Teleport : MonoBehaviour
             flashbangImage.color = new Color(1f, 1f, 1f, alpha);
             yield return null;
         }
-
+    
         flashbangImage.gameObject.SetActive(false);
     }
 
     private void Teleporting(string loc)
     {
         Debug.Log("5");
+        FindReferences();
+
         if (Player == null)
         {
             Debug.LogError("Player reference is missing!");
             return;
         }
 
-        Debug.Log("5");
-        // Случай с пустой локацией или "-"
-        if (string.IsNullOrEmpty(loc) || loc == "-")
+        // 1. Получаем Rigidbody и временно отключаем физику
+        Rigidbody rb = Player.GetComponent<Rigidbody>();
+        bool hadRigidbody = false;
+        if (rb != null)
         {
-            if (backupCoords == invalidCoords)
-            {
-                Debug.LogError("ErrorLog: Invalid backup coordinates");
-                return;
-            }
-            Debug.Log(backupCoords);
-            Player.transform.position = backupCoords; 
+            hadRigidbody = true;
+            Vector3 savedVelocity = rb.linearVelocity;
+            Vector3 savedAngularVelocity = rb.angularVelocity;
+
+            // 2. Устанавливаем позицию через Rigidbody
+            rb.position = backupCoords;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+
+            Debug.Log($"Teleported via Rigidbody to: {backupCoords}");
+
+            // 3. Принудительное обновление физики
+            Physics.SyncTransforms();
             return;
         }
 
-        // Поиск индекса локации
-        int index = System.Array.IndexOf(LevelManager.LocName, loc);
-        if (index >= 0 && index < LevelManager.levelPoints.Length)
-        {
-            Player.transform.position = LevelManager.levelPoints[index];
-        }
-        else
-        {
-            // Резервные координаты при неудаче
-            if (backupCoords == invalidCoords)
-            {
-                Debug.LogError($"ErrorLog: Location '{loc}' not found and invalid backup coordinates");
-            }
-            else
-            {
-                Player.transform.position = backupCoords;
-            }
-        }
+        // 4. Если Rigidbody нет - используем обычную телепортацию
+        Player.transform.position = backupCoords;
+        Debug.Log($"Teleported via Transform to: {backupCoords}");
+
+        // 5. Принудительное обновление трансформации
+        Player.transform.SetPositionAndRotation(backupCoords, Player.transform.rotation);
     }
 }

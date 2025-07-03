@@ -8,16 +8,22 @@ public class DeathManager : MonoBehaviour
     public bool Dead = false;
     public int deathCNT = 0;
     private AudioListener playerAudioListener;
-    private float originalVolume; // Сохраняем оригинальную громкость
+    private float originalVolume;
 
     [Header("Death Settings")]
     public Image blackPanel;
-    public float delay = 2f;       // Задержка после затемнения
-    public float fadeDuration = 1f;  // Длительность затемнения
+    public float delay = 2f;
+    public float fadeDuration = 1f;
     public bool isStart = false;
+
+    // Ключ для сохранения счетчика смертей
+    private const string DEATH_COUNT_KEY = "DeathCount";
 
     void Start()
     {
+        // Загружаем сохраненное значение счетчика смертей
+        deathCNT = PlayerPrefs.GetInt(DEATH_COUNT_KEY, 0);
+        
         if (blackPanel != null)
         {
             blackPanel.color = new Color(0, 0, 0, 0);
@@ -30,7 +36,6 @@ public class DeathManager : MonoBehaviour
             playerAudioListener = player.GetComponent<AudioListener>();
         }
         
-        // Сохраняем оригинальную громкость
         originalVolume = AudioListener.volume;
     }
 
@@ -41,16 +46,22 @@ public class DeathManager : MonoBehaviour
 
     public void Death(string sceneToLoad)
     {
+        // Увеличиваем счетчик только при первой активации смерти
+        if (!Dead)
+        {
+            deathCNT++;
+            PlayerPrefs.SetInt(DEATH_COUNT_KEY, deathCNT);
+            PlayerPrefs.Save();
+        }
+        
         StartCoroutine(DeathSequence(sceneToLoad));
         Dead = true;
     }
 
     private IEnumerator DeathSequence(string sceneToLoad)
     {
-        // Сохраняем оригинальную громкость перед изменением
         float volumeBeforeDeath = AudioListener.volume;
         
-        // Плавное снижение громкости
         float timer = 0f;
         while (timer < fadeDuration / 2)
         {
@@ -60,20 +71,14 @@ public class DeathManager : MonoBehaviour
         }
         AudioListener.volume = 0f;
 
-        // Запускаем визуальный эффект
         if (blackPanel != null)
         {
             blackPanel.gameObject.SetActive(true);
             yield return StartCoroutine(FadeToBlack());
         }
 
-        // Задержка перед загрузкой сцены
         yield return new WaitForSeconds(delay);
-
-        // Восстанавливаем громкость
         AudioListener.volume = originalVolume;
-        
-        // Загружаем сцену
         SceneManager.LoadScene(sceneToLoad);
     }
 
@@ -90,5 +95,13 @@ public class DeathManager : MonoBehaviour
             yield return null;
         }
         blackPanel.color = endColor;
+    }
+
+    // Опционально: метод для сброса счетчика
+    public void ResetDeathCount()
+    {
+        deathCNT = 0;
+        PlayerPrefs.SetInt(DEATH_COUNT_KEY, 0);
+        PlayerPrefs.Save();
     }
 }
