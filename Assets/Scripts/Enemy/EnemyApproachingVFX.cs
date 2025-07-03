@@ -21,7 +21,6 @@ public class EnemyApproachingVFX : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
         // Player 
         float PlayerPosX = Player.transform.position.x;
         float PlayerPosY = Player.transform.position.y;
@@ -30,9 +29,14 @@ public class EnemyApproachingVFX : MonoBehaviour
         float PosX = transform.position.x;
         float PosY = transform.position.y;
         float PosZ = transform.position.z;
-        if (math.sqrt(math.square(PlayerPosX - PosX) + math.square(PlayerPosY - PosY) + math.square(PlayerPosZ - PosZ)) < DistanceToStart)
+
+        float Distance = math.sqrt(math.square(PlayerPosX - PosX) + math.square(PlayerPosY - PosY) + math.square(PlayerPosZ - PosZ));
+
+        Debug.Log(Distance);
+
+        if (Distance < DistanceToStart)
         {
-            GameObject.Find("Enemy Approaching VFX").GetComponent<Volume>().weight = 1 - (math.sqrt(math.square(PlayerPosX - PosX) + math.square(PlayerPosY - PosY) + math.square(PlayerPosZ - PosZ)) / DistanceToStart);
+            GameObject.Find("Enemy Approaching VFX").GetComponent<Volume>().weight = 1 - (Distance / DistanceToStart);
         }
         else GameObject.Find("Enemy Approaching VFX").GetComponent<Volume>().weight = 0;
     }

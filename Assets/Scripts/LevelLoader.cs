@@ -14,7 +14,6 @@ public class LevelLoader : MonoBehaviour
     {
         if (collider.gameObject.tag == "MainPlayer")
         {
-            Debug.Log("0");
             Teleport.tp(delay, loc, coords);
         }
     }
