@@ -35,6 +35,9 @@
         },
         {
             "m_Id": "2cadb6dadc4b4ba89612eda60b72a998"
+        },
+        {
+            "m_Id": "8c094f01fbf44c139cd576c8fd807005"
         }
     ],
     "m_Keywords": [],
@@ -200,6 +203,9 @@
         },
         {
             "m_Id": "f56ee7fd41004391bb9c308221ae6e9a"
+        },
+        {
+            "m_Id": "9cbe6e9448474becbc7a0b2dc5086faf"
         }
     ],
     "m_GroupDatas": [
@@ -499,6 +505,20 @@
                     "m_Id": "5ab7d81223134f45a6161fc4e48da933"
                 },
                 "m_SlotId": 2
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "9cbe6e9448474becbc7a0b2dc5086faf"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "a2e52b538b2b495e8f82c05e6c09deed"
+                },
+                "m_SlotId": 0
             }
         },
         {
@@ -958,7 +978,7 @@
     "m_Title": "Colour",
     "m_Position": {
         "x": -1617.33349609375,
-        "y": -281.33331298828127
+        "y": -281.333251953125
     }
 }
 
@@ -2503,6 +2523,9 @@
         },
         {
             "m_Id": "2cadb6dadc4b4ba89612eda60b72a998"
+        },
+        {
+            "m_Id": "8c094f01fbf44c139cd576c8fd807005"
         }
     ]
 }
@@ -3176,8 +3199,8 @@
     "m_ObjectId": "7822d813387d4b1cb96700c94ac15890",
     "m_Title": "inner frost",
     "m_Position": {
-        "x": -3495.333740234375,
-        "y": -1848.6668701171875
+        "x": -3495.333251953125,
+        "y": -1848.6666259765625
     }
 }
 
@@ -3578,6 +3601,34 @@
 
 {
     "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector1ShaderProperty",
+    "m_ObjectId": "8c094f01fbf44c139cd576c8fd807005",
+    "m_Guid": {
+        "m_GuidSerialized": "87f317ec-39ad-4c47-95fa-87cbe4a9e223"
+    },
+    "m_Name": "Smoothness",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Smoothness",
+    "m_DefaultReferenceName": "_Smoothness",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_Value": 0.0,
+    "m_FloatType": 1,
+    "m_RangeValues": {
+        "x": 0.0,
+        "y": 1.0
+    }
+}
+
+{
+    "m_SGVersion": 1,
     "m_Type": "UnityEditor.ShaderGraph.Internal.Vector2ShaderProperty",
     "m_ObjectId": "8d3dc25a3de14d768d1b6ab2b31fb892",
     "m_Guid": {
@@ -3658,8 +3709,8 @@
     "m_ObjectId": "9375aab4c7a54ee3a65daa373bd2e3bf",
     "m_Title": "Inner Frost Noise",
     "m_Position": {
-        "x": -2041.333740234375,
-        "y": -2665.333251953125
+        "x": -2041.3333740234375,
+        "y": -2665.3330078125
     }
 }
 
@@ -3718,8 +3769,8 @@
     "m_ObjectId": "97c98adc1c60476385d6e08542ad894b",
     "m_Title": "Frosty surface",
     "m_Position": {
-        "x": -2877.33349609375,
-        "y": -1007.3333129882813
+        "x": -2877.333251953125,
+        "y": -1007.3331298828125
     }
 }
 
@@ -3865,6 +3916,42 @@
 
 {
     "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "9cbe6e9448474becbc7a0b2dc5086faf",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -356.6667175292969,
+            "y": -122.00004577636719,
+            "width": 141.33338928222657,
+            "height": 36.00000762939453
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "cb4a46ff16fa494fa1e7a131033c17c1"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "8c094f01fbf44c139cd576c8fd807005"
+    }
+}
+
+{
+    "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.DynamicValueMaterialSlot",
     "m_ObjectId": "9e0f8a8aec224e6aa94b709a8466bc5b",
     "m_Id": 2,
@@ -3917,8 +4004,8 @@
     "m_ObjectId": "9e16107863054f35ae7b43b20723be14",
     "m_Title": "Refract",
     "m_Position": {
-        "x": -3488.667236328125,
-        "y": -355.3333435058594
+        "x": -3488.66650390625,
+        "y": -355.333251953125
     }
 }
 
@@ -4922,6 +5009,21 @@
         "z": 0.0,
         "w": 0.0
     }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "cb4a46ff16fa494fa1e7a131033c17c1",
+    "m_Id": 0,
+    "m_DisplayName": "Smoothness",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": 0.0,
+    "m_DefaultValue": 0.0,
+    "m_Labels": []
 }
 
 {

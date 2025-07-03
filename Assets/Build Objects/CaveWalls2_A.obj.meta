@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CaveWalls2AMat
-    second: {fileID: -876546973899608171, guid: b577f298967fd1c4a8a4936f6373a3de, type: 3}
+    second: {fileID: 2100000, guid: 94873642f13caf743b545a07d76f7a96, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
