@@ -1,15 +1,14 @@
 using UnityEngine;
 
-public class QuitGame : MonoBehaviour
+public class ExitToDesktop : MonoBehaviour
 {
-    public void OnQuitButtonClick()
+    public void ExitGame()
     {
-        // Работает в собранной версии игры
-        Application.Quit();
-
-        // Для теста в редакторе
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
+#else
+        // Завершить игру в сборке
+        Application.Quit();
 #endif
     }
 }
