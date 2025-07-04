@@ -1896,7 +1896,7 @@
     "m_Title": "Disstortion",
     "m_Position": {
         "x": -2601.333251953125,
-        "y": 306.6666259765625
+        "y": 306.66668701171877
     }
 }
 
@@ -2711,7 +2711,7 @@
     "m_ZTestMode": 4,
     "m_ZWriteControl": 0,
     "m_AlphaMode": 1,
-    "m_RenderFace": 0,
+    "m_RenderFace": 2,
     "m_AlphaClip": false,
     "m_CastShadows": true,
     "m_ReceiveShadows": true,

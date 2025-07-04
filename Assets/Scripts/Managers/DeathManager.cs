@@ -79,7 +79,7 @@ public class DeathManager : MonoBehaviour
 
         yield return new WaitForSeconds(delay);
         AudioListener.volume = originalVolume;
-        SceneManager.LoadScene(sceneToLoad);
+        SceneManager.LoadScene("GameScene");
     }
 
     private IEnumerator FadeToBlack()
