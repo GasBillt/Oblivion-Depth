@@ -97,6 +97,7 @@ GameObject:
   - component: {fileID: 1824222269025766464}
   - component: {fileID: 478133273170543212}
   - component: {fileID: 2336768825307318236}
+  - component: {fileID: 6618526893757628964}
   m_Layer: 0
   m_Name: Trigger
   m_TagString: Untagged
@@ -150,6 +151,22 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6618526893757628964
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1135798307678204822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90f2de8abeac0634daded7e4a1add18b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Teleport: {fileID: 0}
+  delay: 0
+  loc: 
+  coords: {x: 0, y: 0, z: 0}
 --- !u!1 &8613002148951948516
 GameObject:
   m_ObjectHideFlags: 0
